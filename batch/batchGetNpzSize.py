@@ -8,7 +8,7 @@ from feelit import utils
 def help():
     print "usage: python [file_path]"
     print
-    print "  e.g: python ../exp/data/TFIDF+keyword_eachfromMongo.Xy.train.npz"
+    print "  e.g: python ../exp/data/from_mongo/TFIDF+keyword_eachfromMongo.Xy.train.npz"
     exit(-1)
 
 if __name__ == '__main__':
@@ -33,7 +33,7 @@ if __name__ == '__main__':
             print ("the npz file you check is a sparse matrix")
             x = utils.toDense(x)
         ## print matrix x
-        print "Matrix \"%s\" = " % (matrix_name)
+        print type(x), "\"%s\" = " % (matrix_name)
         print "%s" % (x)
         print
 

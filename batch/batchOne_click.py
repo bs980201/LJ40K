@@ -12,9 +12,10 @@ import pickle
 emotions = utils.LJ40K
 
 def help():
-    print "usage: python %s [Feature_name][SettingID][TrainingData_range]" % (__file__)
+    print "usage: python %s [Feature_name][SettingID][TrainingData_range][.mat or not, 1 or 0]" % (__file__)
     print
-    print "  e.g: python %s keyword_emotion 538a08a5d4388c142389a032 800" % (__file__)
+    print "  e.g: python %s keyword_emotion 538a08a5d4388c142389a032 800 1" % (__file__)
+    print "       '1' represent that making another type of files: .mat"    
     exit(-1)
 
 def fetch(feature_name, settingID, data_range):
@@ -33,7 +34,7 @@ def fetch(feature_name, settingID, data_range):
         print "Failed to make .npz file"
         exit(-1)
 
-def Npzto40Emo(feature_name):
+def Npzto40Emo(feature_name, mat=0):
     print 'loading random160_idx'
     G = load(path="random160_idx.pkl")
 
@@ -41,7 +42,7 @@ def Npzto40Emo(feature_name):
 
     ## load text_TFIDF.Xy.test.npz
     ## load text_TFIDF.Xy.train.npz
-    npz_path = "../exp/data/from_mongo/"+feature_name+".Xy.train.npz"
+    npz_path = "../exp/data/from_file/"+feature_name+".Xy.train.npz"
 
     print ' > loading',npz_path
 
@@ -68,12 +69,16 @@ def Npzto40Emo(feature_name):
 
         _y = relabel(_y, label)
 
-        path = "../exp/train/"+feature_name+"/160_Xy/"+feature_name+".Xy."+label+".train.npz"
-        dirs = os.path.dirname(path)
+        path = "../exp/train/"+feature_name+"/160_Xy/"+feature_name+".Xy."+label+".train"
+        dirs = os.path.dirname(path+".npz")
         if dirs and not os.path.exists( dirs ): os.makedirs( dirs )
         
-        print ' > dumping', path
-        dump(path, X=_X, y=_y)
+        print ' > dumping', path+".npz"
+        dump(path+".npz", X=_X, y=_y)
+
+        if mat == 1:
+            import scipy.io as sio
+            sio.savemat(path+'.mat', {'X':_X, 'y':_y})
 
 def subsample(X, y, idxs):
     """
@@ -86,7 +91,7 @@ def subsample(X, y, idxs):
             _X.append( X[i] )
     return ( np.array(_X), np.array(_y) )
 
-def relabel(y, label): return [label if _y == label else "_"+label for _y in y ]
+def relabel(y, label): return [1 if _y == label else -1 for _y in y ]
 
 def save(G, path="random160_idx.pkl"): pickle.dump(G, open(path, "wb"), protocol=2)
 
@@ -166,6 +171,14 @@ def buildkernel(root,feature,begin,end):
     ## load train/dev index files
     ## train_idx: a list containing 1440 index (int)
     ## dev_idx: a list containing 160 index (int)
+    '''
+    # required work:
+    # from feelit.utils import random_idx
+    # train_idx, dev_idx = random_idx(160, 140)
+    # import pickle
+    # pickle.dump(train_idx, open('train160_binary_idx.pkl', 'w'))
+    # pickle.dump(dev_idx, open('dev160_binary_idx.pkl', 'w'))
+    '''
     try:
         train160_idx, dev160_idx = pickle.load(open('../exp/train/train160_binary_idx.pkl')), pickle.load(open('../exp/train/dev160_binary_idx.pkl'))
     except:
@@ -200,18 +213,18 @@ def buildkernel(root,feature,begin,end):
 
 if __name__ == '__main__':
     
-    if len(sys.argv) != 4: help()
+    if len(sys.argv) != 5: help()
     sys.argv[3] = int(sys.argv[3])
 
     # #fetch files from Mongodb
     # fetch(sys.argv[1],sys.argv[2],sys.argv[3])
     
-    # #make above files into 40 npz files
-    # Npzto40Emo(sys.argv[1])
+    #make above files into 40 npz files
+    Npzto40Emo(sys.argv[1], mat=int(sys.argv[4]))
     
     # eid = input("input the emotion number you want to train:(0~39)")
     # training(sys.argv[1],eid)
     
     #make sure that you've already use Build_random_Tr+Dev_idx.py to built '../exp/data/train_binary_idx.pkl' and '../exp/data/dev_binary_idx.pkl'
-    buildkernel('../exp/train/',sys.argv[1],0,40)
+    # buildkernel('../exp/train/',sys.argv[1],0,40)
 
