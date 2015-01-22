@@ -3,19 +3,28 @@
 import sys, os
 sys.path.append("../")
 import numpy as np
+import logging, pickle
 from feelit.features import FetchMongo
 from feelit.features import dump
 from feelit.features import Learning
+from feelit.features import LoadFile
 from feelit import utils
 from feelit.kernel import RBF
-import pickle
+
 emotions = utils.LJ40K
 
 def help():
-    print "usage: python %s [Feature_name][SettingID][TrainingData_range][.mat or not, 1 or 0]" % (__file__)
+    print "usage: (for text, load data form mongodb)"
+    print "python %s [Feature_name][SettingID][TrainingData_range][.mat or not, 1 or 0][mongo]" % (__file__)
     print
-    print "  e.g: python %s keyword_emotion 538a08a5d4388c142389a032 800 1" % (__file__)
+    print "  e.g: python %s keyword_emotion 538a08a5d4388c142389a032 800 1 mongo" % (__file__)
     print "       '1' represent that making another type of files: .mat"    
+    print "-------------------------------------------------------------------------"
+    print "usage: (for image, load csv data from file path)"
+    print "python %s [Feature_name][load_path][TrainingData_range][.mat or not, 1 or 0][file]" % (__file__)
+    print
+    print "  e.g: python %s image_rgba_gist ../images/data/features/csv/rgba/gist 800 1 file" % (__file__)
+    print "       '1' represent that making another type of files: .mat"   
     exit(-1)
 
 def fetch(feature_name, settingID, data_range):
@@ -36,7 +45,17 @@ def fetch(feature_name, settingID, data_range):
         print "Failed to make .npz file"
         exit(-1)
 
-def Npzto40Emo(feature_name, mat=0):
+def loadimagefile(feature_name,load_path,data_range):
+    lf_tr = LoadFile(verbose=True)
+    lf_te = LoadFile(verbose=True)
+    lf_tr.loads(root=load_path, data_range=(None,data_range), amend=True)
+    EachEmDataQuanty = 1000
+    testdataQuanty = EachEmDataQuanty-data_range
+    lf_te.loads(root=load_path, data_range=(-testdataQuanty,None), amend=True)
+    lf_tr.dump(path="../exp/data/from_file/"+feature_name+".Xy.train", ext=".npz")
+    lf_te.dump(path="../exp/data/from_file/"+feature_name+".Xy.test", ext=".npz")
+
+def Npzto40Emo(feature_name, mat=0, feature_type="default"):
     print 'loading random160_idx'
     G = load(path="random160_idx.pkl")
 
@@ -44,12 +63,15 @@ def Npzto40Emo(feature_name, mat=0):
 
     ## load text_TFIDF.Xy.test.npz
     ## load text_TFIDF.Xy.train.npz
-    npz_path = "../exp/data/from_file/"+feature_name+".Xy.train.npz"
+    if feature_type == "mongo":
+        npz_path = "../exp/data/from_mongo/"+feature_name+".Xy.train.npz"
+    elif feature_type == "file":
+        npz_path = "../exp/data/from_file/"+feature_name+".Xy.train.npz"
+    else:
+        help()
 
     print ' > loading',npz_path
-
     data = np.load(npz_path)
-
     # slice to train/test
     X = data['X']
     if utils.isSparse(X):
@@ -215,18 +237,25 @@ def buildkernel(root,feature,begin,end):
 
 if __name__ == '__main__':
     
-    if len(sys.argv) != 5: help()
+    if len(sys.argv) != 6: help()
     sys.argv[3] = int(sys.argv[3])
-
-    # #fetch files from Mongodb
-    # fetch(sys.argv[1],sys.argv[2],sys.argv[3])
+    feature_type = sys.argv[5]
     
-    # #make above files into 40 npz files
-    # Npzto40Emo(sys.argv[1], mat=int(sys.argv[4]))
+    # if feature_type == "mongo":
+    #     #fetch data from Mongodb
+    #     fetch(sys.argv[1],sys.argv[2],sys.argv[3])
+    # elif feature_type == "file":
+    #     #load data from file path
+    #     loadimagefile(sys.argv[1],sys.argv[2],sys.argv[3])
+    # else:
+    #     print"yyyyy"
+
+    #make above files into 40 npz files
+    Npzto40Emo(sys.argv[1], mat=int(sys.argv[4]), feature_type=sys.argv[5])
     
     # eid = input("input the emotion number you want to train:(0~39)")
     # training(sys.argv[1],eid)
     
-    #make sure that you've already use Build_random_Tr+Dev_idx.py to built '../exp/data/train_binary_idx.pkl' and '../exp/data/dev_binary_idx.pkl'
-    buildkernel('../exp/train/',sys.argv[1],0,40)
+    # #make sure that you've already use Build_random_Tr+Dev_idx.py to built '../exp/data/train_binary_idx.pkl' and '../exp/data/dev_binary_idx.pkl'
+    # buildkernel('../exp/train/',sys.argv[1],0,40)
 
