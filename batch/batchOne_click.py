@@ -28,6 +28,8 @@ def fetch(feature_name, settingID, data_range):
         print "Failed to fetch file features.%s in Mongo" % (feature_name)
         exit(-1)
     try:
+        dirs = os.path.dirname("../exp/data/from_mongo/")
+        if dirs and not os.path.exists( dirs ): os.makedirs( dirs )
         fm_tr.dump(path="../exp/data/from_mongo/"+feature_name+".Xy.train", ext=".npz")
         fm_te.dump(path="../exp/data/from_mongo/"+feature_name+".Xy.test", ext=".npz")
     except:
@@ -219,12 +221,12 @@ if __name__ == '__main__':
     # #fetch files from Mongodb
     # fetch(sys.argv[1],sys.argv[2],sys.argv[3])
     
-    #make above files into 40 npz files
-    Npzto40Emo(sys.argv[1], mat=int(sys.argv[4]))
+    # #make above files into 40 npz files
+    # Npzto40Emo(sys.argv[1], mat=int(sys.argv[4]))
     
     # eid = input("input the emotion number you want to train:(0~39)")
     # training(sys.argv[1],eid)
     
     #make sure that you've already use Build_random_Tr+Dev_idx.py to built '../exp/data/train_binary_idx.pkl' and '../exp/data/dev_binary_idx.pkl'
-    # buildkernel('../exp/train/',sys.argv[1],0,40)
+    buildkernel('../exp/train/',sys.argv[1],0,40)
 
