@@ -4,22 +4,23 @@ import random
 import pickle
 
 LJ40K = ['accomplished', 'aggravated', 'amused', 'annoyed', 'anxious', 'awake', 'blah', 'blank', 'bored', 'bouncy', 'busy', 'calm', 'cheerful', 'chipper', 'cold', 'confused', 'contemplative', 'content', 'crappy', 'crazy', 'creative', 'crushed', 'depressed', 'drained', 'ecstatic', 'excited', 'exhausted', 'frustrated', 'good', 'happy', 'hopeful', 'hungry', 'lonely', 'loved', 'okay', 'pissed off', 'sad', 'sick', 'sleepy', 'tired']
+
 def help():
     print
-    print "usage: python %s [Data_quantity][Selected_EachEm_Data_quantity][1/0, train/test]"  % (__file__)
+    print "usage: python %s [Data_quantity][Selected_EachEm_Data_quantity][train/test]"  % (__file__)
     print
     print "-----------------------------------------------------------------------------------"
-    print "  e.g: python %s 32000 80 1" % (__file__)
+    print "  e.g: python %s 32000 80 train" % (__file__)
     print "  from 32000 training data randomly select 80*2 data each emotion for training"
     print "  e.g: output pkl file: {'accomplished':[3,56,34,78...],'sad':[466,536,423,...],.....}"
     print
     print "-----------------------------------------------------------------------------------"
-    print "  e.g: python %s 8000 20 0" % (__file__)
+    print "  e.g: python %s 8000 20 test" % (__file__)
     print "  from 8000 testing data randomly select 20 data each emotion for testing"
     print
     exit(-1)
 
-def random_thislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity):     
+def random_thislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity):  
     selected_Data = []
     #build[0,1,2,....31999]
     feature_indexs = range(Data_quantity)
@@ -28,7 +29,6 @@ def random_thislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Dat
         Part_of_feature_index = feature_indexs[i:i+EachEm_Data_quantity]
         random.shuffle(Part_of_feature_index)
         selected_Data.append(Part_of_feature_index[:Selected_EachEm_Data_quantity])
-    # print random_thislabel_Data
     return selected_Data
 
 def random_Nthislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity):    
@@ -63,7 +63,7 @@ if __name__ == '__main__':
     # e.g: Selected_EachEm_Data_quantity = 80
     Selected_EachEm_Data_quantity = int(sys.argv[2])
     
-    if sys.argv[3] == '1':
+    if sys.argv[3] == 'train':
         SelectPart1 = random_thislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity)
         SelectPart2 = random_Nthislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity)
 
@@ -72,7 +72,7 @@ if __name__ == '__main__':
         random_idx = dict(zip(LJ40K,Total_selecting_Data))
         pickle.dump(random_idx, open("random"+Total_SETQ+"Train_idx.pkl", "wb"), protocol=2)
     
-    elif sys.argv[3] == '0':
+    elif sys.argv[3] == 'test':
         Total_selecting_Data = random_Data(Data_quantity,Emotion_quantity,Selected_EachEm_Data_quantity)
         Total_SETQ = str(Selected_EachEm_Data_quantity)
         random_idx = dict(zip(LJ40K,Total_selecting_Data))
