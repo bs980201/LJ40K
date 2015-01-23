@@ -17,7 +17,7 @@ def help():
     print "usage: (for text, load data form mongodb)"
     print "python %s [Feature_name][SettingID][TrainingData_range][.mat or not, 1 or 0][mongo]" % (__file__)
     print
-    print "  e.g: python %s keyword_emotion 538a08a5d4388c142389a032 800 1 mongo" % (__file__)
+    print "  e.g: python %s keyword  537451d1d4388c7843516ba4 all 1 mongo" % (__file__)
     print "       '1' represent that making another type of files: .mat"    
     print "-------------------------------------------------------------------------"
     print "usage: (for image, load csv data from file path)"
@@ -28,24 +28,27 @@ def help():
     exit(-1)
 
 def fetch(feature_name, settingID, data_range):
+    if data_range != "all":
+        data_range = int(data_range)
     fm_tr = FetchMongo(verbose=True)
-    fm_te = FetchMongo(verbose=True)
+    # fm_te = FetchMongo(verbose=True)
     try:
         fm_tr.fetch_transform(feature_name, settingID, data_range=data_range)
-        fm_te.fetch_transform(feature_name, settingID, data_range=">"+str(data_range))      
+        # fm_te.fetch_transform(feature_name, settingID, data_range=">"+str(data_range))      
     except:
         print "Failed to fetch file features.%s in Mongo" % (feature_name)
         exit(-1)
     try:
         dirs = os.path.dirname("../exp/data/from_mongo/")
         if dirs and not os.path.exists( dirs ): os.makedirs( dirs )
-        fm_tr.dump(path="../exp/data/from_mongo/"+feature_name+".Xy.train", ext=".npz")
-        fm_te.dump(path="../exp/data/from_mongo/"+feature_name+".Xy.test", ext=".npz")
+        fm_tr.dump(path="../exp/data/from_mongo/"+feature_name+".Xy", ext=".npz")
+        # fm_te.dump(path="../exp/data/from_mongo/"+feature_name+".Xy.test", ext=".npz")
     except:
         print "Failed to make .npz file"
         exit(-1)
 
 def loadimagefile(feature_name,load_path,data_range):
+    data_range = int(data_range)
     lf_tr = LoadFile(verbose=True)
     lf_te = LoadFile(verbose=True)
     lf_tr.loads(root=load_path, data_range=(None,data_range), amend=True)
@@ -56,17 +59,20 @@ def loadimagefile(feature_name,load_path,data_range):
     lf_te.dump(path="../exp/data/from_file/"+feature_name+".Xy.test", ext=".npz")
 
 def Npzto40Emo(feature_name, mat=0, feature_type="default"):
-    print 'loading random160_idx'
-    G = load(path="random160_idx.pkl")
-
+    # # for training
+    # print 'loading random160_idx'
+    # G = load(path="random160_idx.pkl")
+    # for testing
+    print 'loading random20Test_idx'
+    G = load(path="random20Test_idx.pkl")
     print '>>> processing', feature_name
 
     ## load text_TFIDF.Xy.test.npz
     ## load text_TFIDF.Xy.train.npz
     if feature_type == "mongo":
-        npz_path = "../exp/data/from_mongo/"+feature_name+".Xy.train.npz"
+        npz_path = "../exp/data/from_mongo/"+feature_name+".Xy.test.npz"
     elif feature_type == "file":
-        npz_path = "../exp/data/from_file/"+feature_name+".Xy.train.npz"
+        npz_path = "../exp/data/from_file/"+feature_name+".Xy.test.npz"
     else:
         help()
 
@@ -93,7 +99,7 @@ def Npzto40Emo(feature_name, mat=0, feature_type="default"):
 
         _y = relabel(_y, label)
 
-        path = "../exp/train/"+feature_name+"/160_Xy/"+feature_name+".Xy."+label+".train"
+        path = "../exp/test/"+feature_name+"/160_Xy/"+feature_name+".Xy."+label+".train"
         dirs = os.path.dirname(path+".npz")
         if dirs and not os.path.exists( dirs ): os.makedirs( dirs )
         
@@ -115,18 +121,11 @@ def subsample(X, y, idxs):
             _X.append( X[i] )
     return ( np.array(_X), np.array(_y) )
 
-def relabel(y, label): return [1 if _y == label else -1 for _y in y ]
+def relabel(y, label): return [float(1) if _y == label else float(-1) for _y in y ]
 
-def save(G, path="random160_idx.pkl"): pickle.dump(G, open(path, "wb"), protocol=2)
+def save(G, path="random20Test_idx.pkl"): pickle.dump(G, open(path, "wb"), protocol=2)
 
-def load(path="random160_idx.pkl"): return pickle.load(open(path))
-
-def usage():
-    print 'Usage:'
-    print 'python %s [feature_names]' % (__file__)
-    print
-    print 'e.g., feature_names: `image_rgba_phog`'
-    exit(-1)
+def load(path="random20Test_idx.pkl"): return pickle.load(open(path))
 
 def evals(y_te, y_predict, emotion):
 
@@ -238,17 +237,17 @@ def buildkernel(root,feature,begin,end):
 if __name__ == '__main__':
     
     if len(sys.argv) != 6: help()
-    sys.argv[3] = int(sys.argv[3])
+    data_range = sys.argv[3]
     feature_type = sys.argv[5]
     
     # if feature_type == "mongo":
     #     #fetch data from Mongodb
-    #     fetch(sys.argv[1],sys.argv[2],sys.argv[3])
+    #     fetch(sys.argv[1],sys.argv[2],data_range)
     # elif feature_type == "file":
     #     #load data from file path
-    #     loadimagefile(sys.argv[1],sys.argv[2],sys.argv[3])
+    #     loadimagefile(sys.argv[1],sys.argv[2],data_range)
     # else:
-    #     print"yyyyy"
+    #     help()
 
     #make above files into 40 npz files
     Npzto40Emo(sys.argv[1], mat=int(sys.argv[4]), feature_type=sys.argv[5])
