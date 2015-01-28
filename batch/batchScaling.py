@@ -43,4 +43,4 @@ def batchScaling(in_root="raw", out_root="data", with_mean=True, with_std=True):
 
 if __name__ == '__main__':
 
-    batchScaling(in_root="../raw", out_root="../data", with_mean=True, with_std=True)
+    batchScaling(in_root="../exp/raw", out_root="../exp/data/from_mongo", with_mean=True, with_std=True)

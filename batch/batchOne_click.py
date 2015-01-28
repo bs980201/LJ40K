@@ -14,17 +14,13 @@ from feelit.kernel import RBF
 emotions = utils.LJ40K
 
 def help():
-    print "usage: (for text, load data form mongodb)"
-    print "python %s [Feature_name][SettingID][TrainingData_range][.mat or not, 1 or 0][mongo]" % (__file__)
+    print "usage: python %s [Feature_name]" % (__file__)
     print
-    print "  e.g: python %s keyword  537451d1d4388c7843516ba4 all 1 mongo" % (__file__)
-    print "       '1' represent that making another type of files: .mat"    
-    print "-------------------------------------------------------------------------"
-    print "usage: (for image, load csv data from file path)"
-    print "python %s [Feature_name][load_path][TrainingData_range][.mat or not, 1 or 0][file]" % (__file__)
+    print "  e.g: python %s keyword" % (__file__)
+    print "     : python %s image_rgba_gist" % (__file__)
+    print 
+    print " Step: FetchToFile --> FileTo40Emo --> Training --> Buildkernel"
     print
-    print "  e.g: python %s image_rgba_gist ../images/data/features/csv/rgba/gist 800 1 file" % (__file__)
-    print "       '1' represent that making another type of files: .mat"   
     exit(-1)
 
 def fetch(feature_name, settingID, data_range):
@@ -48,31 +44,40 @@ def fetch(feature_name, settingID, data_range):
         exit(-1)
 
 def loadimagefile(feature_name,load_path,data_range):
-    data_range = int(data_range)
-    lf_tr = LoadFile(verbose=True)
-    lf_te = LoadFile(verbose=True)
-    lf_tr.loads(root=load_path, data_range=(None,data_range), amend=True)
-    EachEmDataQuanty = 1000
-    testdataQuanty = EachEmDataQuanty-data_range
-    lf_te.loads(root=load_path, data_range=(-testdataQuanty,None), amend=True)
-    lf_tr.dump(path="../exp/data/from_file/"+feature_name+".Xy.train", ext=".npz")
-    lf_te.dump(path="../exp/data/from_file/"+feature_name+".Xy.test", ext=".npz")
+    if data_range != "all":
+        data_range = int(data_range)
+        lf_tr = LoadFile(verbose=True)
+        lf_te = LoadFile(verbose=True)
+        lf_tr.loads(root=load_path, data_range=(None,data_range), amend=True)
+        EachEmDataQuanty = 1000
+        testdataQuanty = EachEmDataQuanty-data_range
+        lf_te.loads(root=load_path, data_range=(-testdataQuanty,None), amend=True)
+        lf_tr.dump(path="../exp/data/from_file/"+feature_name+".Xy.train", ext=".npz")
+        lf_te.dump(path="../exp/data/from_file/"+feature_name+".Xy.test", ext=".npz")
+    if data_range == "all":
+        lf_trall = LoadFile(verbose=True)
+        lf_trall.loads(root=load_path, amend=True)
+        lf_trall.dump(path="../exp/data/from_file/"+feature_name+".Xy", ext=".npz")
 
-def Npzto40Emo(feature_name, mat=0, feature_type="default"):
-    # # for training
-    # print 'loading random160_idx'
-    # G = load(path="random160_idx.pkl")
-    # for testing
-    print 'loading random20Test_idx'
-    G = load(path="random20Test_idx.pkl")
+def Npzto40Emo(feature_name, datafunction, RandomSetting_Path, mat=0, feature_type="default"):
+    # for training
+    print 'loading'+RandomSetting_Path
+
+    G = load(path=RandomSetting_Path)
+    DataFormat = RandomSetting_Path.split('/')[-1].replace('random','').replace("_idx.pkl","").replace(datafunction,"")
+
+    # #for testing
+    # print 'loading random200p200nTest_idx.pkl'
+    # G = load(path="random200p200nTest_idx.pkl")
+ 
     print '>>> processing', feature_name
 
     ## load text_TFIDF.Xy.test.npz
     ## load text_TFIDF.Xy.train.npz
-    if feature_type == "mongo":
-        npz_path = "../exp/data/from_mongo/"+feature_name+".Xy.test.npz"
-    elif feature_type == "file":
-        npz_path = "../exp/data/from_file/"+feature_name+".Xy.test.npz"
+    if feature_type == "text":
+        npz_path = "../exp/data/from_mongo/"+feature_name+".Xy."+datafunction+".npz"
+    elif feature_type == "image":
+        npz_path = "../exp/data/from_file/"+feature_name+".Xy."+datafunction+".npz"
     else:
         help()
 
@@ -99,7 +104,7 @@ def Npzto40Emo(feature_name, mat=0, feature_type="default"):
 
         _y = relabel(_y, label)
 
-        path = "../exp/test/"+feature_name+"/160_Xy/"+feature_name+".Xy."+label+".train"
+        path = "../exp/"+datafunction+"/"+feature_name+"/"+DataFormat+"_Xy/"+feature_name+"."+DataFormat+"_Xy."+label+"."+datafunction
         dirs = os.path.dirname(path+".npz")
         if dirs and not os.path.exists( dirs ): os.makedirs( dirs )
         
@@ -123,14 +128,19 @@ def subsample(X, y, idxs):
 
 def relabel(y, label): return [float(1) if _y == label else float(-1) for _y in y ]
 
-def save(G, path="random20Test_idx.pkl"): pickle.dump(G, open(path, "wb"), protocol=2)
+def save(G, path="default"): pickle.dump(G, open(path, "wb"), protocol=2)
 
-def load(path="random20Test_idx.pkl"): return pickle.load(open(path))
+def load(path="default"): return pickle.load(open(path))
 
 def evals(y_te, y_predict, emotion):
 
+    # ## for y is 1, -1 format
+    # y_te_ = [1 if a == 1 else 0 for a in y_te]
+    y_predict_ = [0 if a == -1 else 1 for a in y_predict]
+
+    # for y is sad, _sad format
     y_te_ = [1 if a == emotion else 0 for a in y_te]
-    y_predict_ = [0 if a.startswith('_') else 1 for a in y_predict]
+    # y_predict_ = [0 if a.startswith('_') else 1 for a in y_predict]
 
     Y = zip(y_te_, y_predict_)
 
@@ -142,39 +152,60 @@ def evals(y_te, y_predict, emotion):
 
     return accu
 
-def training(feature,eid):
+def training(feature,begin,end,tr_format,te_format):
     ## init
-    emotion = emotions[int(eid)]
-    l = Learning(verbose=False)
-
-    ## ================ training ================ ##
-
-    ## load train
-    l.load(path="../exp/train/%s/160_Xy/%s.Xy.%s.train.npz" % (feature, feature, emotion))
-
-    ## train
-    l.train(classifier="SVM", kernel="rbf", prob=False)
-
-    ## ================= testing ================= ##
-
-    ## load test data
-    test_data = np.load('../exp/data/from_mongo/%s.Xy.test.npz' % (feature))
-    # y_te
-    # array(['accomplished', 'accomplished', 'accomplished', ..., 'tired',
-    #        'tired', 'tired'],
-    #       dtype='|S13')
+    Pofemotion = emotions[begin:end]
+    
+    test_data = np.load("../exp/test/%s/%s.Xy.test.npz" % (feature, feature))
     X_te, y_te = test_data['X'], test_data['y']
+    if utils.isSparse(X_te):
+        print 'the npz file you check is a sparse matrix'
+        print ' > X to Dense'
+        X_te = utils.toDense(X_te)    
+    
+    for emotion in Pofemotion:
+        l = Learning(verbose=False)
 
-    ## predict
-    # y_predict
-    # array([u'_sad', u'_sad', u'sad', ..., u'_sad', u'_sad', u'_sad'],
-    #       dtype='<U4')
-    y_predict = l.clf.predict(X_te)
+        ## ================ training ================ ##
 
-    ## eval
-    accuracy = evals(y_te, y_predict, emotion)
+        ## load train
+        # print 'loading training data from'+"../exp/train/%s/%s_Xy/%s.%s_Xy.%s.train.npz" % (feature, tr_format, feature, tr_format, emotion)
+        
+        # ##for text_tfidf
+        # l.load(path="../exp/train/%s/Xy/%s.Xy.%s.train.npz" % (feature, feature, emotion))
+        
+        l.load(path="../exp/train/%s/%s_Xy/%s.%s_Xy.%s.train.npz" % (feature, tr_format, feature, tr_format, emotion))
 
-    print emotion, '\t', accuracy
+        ## train
+        l.train(classifier="SVM", kernel="rbf", prob=False)
+
+        ## ================= testing ================= ##
+
+        ## load test data
+        # print 'loading testing data from'+"../exp/test/%s/%s_Xy/%s.%s_Xy.%s.test.npz" % (feature, te_format, feature, te_format, emotion)
+        # test_data = np.load("../exp/test/%s/%s.Xy.test.npz" % (feature, feature))
+        # test_data = np.load("../exp/test/%s/%s_Xy/%s.%s_Xy.%s.test.npz" % (feature, te_format, feature, te_format, emotion))
+        # y_te
+        # array(['accomplished', 'accomplished', 'accomplished', ..., 'tired',
+        #        'tired', 'tired'],
+        #       dtype='|S13')
+        # X_te, y_te = test_data['X'], test_data['y']
+        # if utils.isSparse(X_te):
+        #     print 'the npz file you check is a sparse matrix'
+        #     print ' > X to Dense'
+        #     X_te = utils.toDense(X_te)
+        # # predict
+        # y_predict
+        # array([u'_sad', u'_sad', u'sad', ..., u'_sad', u'_sad', u'_sad'],
+        #       dtype='<U4')
+        y_predict = l.clf.predict(X_te)
+
+        #print 'y_predict = ', y_predict
+
+        ## eval
+        accuracy = evals(y_te, y_predict, emotion)
+
+        print emotion, '\t', accuracy
 
 def buildkernel(root,feature,begin,end):
 
@@ -236,25 +267,73 @@ def buildkernel(root,feature,begin,end):
 
 if __name__ == '__main__':
     
-    if len(sys.argv) != 6: help()
-    data_range = sys.argv[3]
-    feature_type = sys.argv[5]
-    
-    # if feature_type == "mongo":
-    #     #fetch data from Mongodb
-    #     fetch(sys.argv[1],sys.argv[2],data_range)
-    # elif feature_type == "file":
-    #     #load data from file path
-    #     loadimagefile(sys.argv[1],sys.argv[2],data_range)
-    # else:
-    #     help()
+    if len(sys.argv) != 2: help()
 
-    #make above files into 40 npz files
-    Npzto40Emo(sys.argv[1], mat=int(sys.argv[4]), feature_type=sys.argv[5])
-    
-    # eid = input("input the emotion number you want to train:(0~39)")
-    # training(sys.argv[1],eid)
-    
-    # #make sure that you've already use Build_random_Tr+Dev_idx.py to built '../exp/data/train_binary_idx.pkl' and '../exp/data/dev_binary_idx.pkl'
-    # buildkernel('../exp/train/',sys.argv[1],0,40)
 
+    Fetchdata_ornot = raw_input("Fetch data?:(y/n)")    
+    if Fetchdata_ornot == 'y':
+        print "Input required info:[Loading_path(SettingID/file_path)][TrainingData_range(all/number)][Fetchfrom(mongo/file)]"
+        print "for text, load data form mongodb","e.g.: 537451d1d4388c7843516ba4 all mongo"
+        print "for image, load csv data from file path","e.g.: ../images/data/features/csv/rgba/gist 800 file"        
+        while True:
+            Pre_Fetchdata = raw_input("Input:")
+            if Pre_Fetchdata == 'ex':break
+            Pre_Fetchdata = Pre_Fetchdata.split()
+            if len(Pre_Fetchdata) == 3:
+                if Pre_Fetchdata[2] == "mongo":
+                    #fetch data from Mongodb
+                    fetch(sys.argv[1],Pre_Fetchdata[0],Pre_Fetchdata[1])
+                    break
+                elif Pre_Fetchdata[2] == "file":
+                    #load data from file path
+                    loadimagefile(sys.argv[1],Pre_Fetchdata[0],Pre_Fetchdata[1])
+                    break
+                else: print "your input format is wrong, try again, or type ex to out"
+            else: print "your input format is wrong, try again, or type ex to out"
+    else: pass
+    
+
+    Into40emtion_ornot = raw_input("Make training or testing data into 40 emotion:(y/n)")    
+    if Into40emtion_ornot == 'y':
+        print "Input required info:[make .mat or not?(1/0)][data_is(text/image)][train/test][RandomSetting_Path]"
+        print "e.g.:1 text test random400test_idx.pkl"
+        print "e.g.:1 image train random160_idx.pkl"
+        while True:
+            Pre_Into40emtion = raw_input("Input:")
+            if Pre_Into40emtion == 'ex':break
+            Pre_Into40emtion = Pre_Into40emtion.split() 
+            if (len(Pre_Into40emtion) == 4) and ((Pre_Into40emtion[2] == 'test') or (Pre_Into40emtion[2] == 'train')):
+                #make above files into 40 npz files
+                Npzto40Emo(sys.argv[1], Pre_Into40emtion[2], Pre_Into40emtion[3], mat=int(Pre_Into40emtion[0]), feature_type=Pre_Into40emtion[1])
+                break
+            else: print "your input format is wrong, try again, or type ex to out"
+    else: pass
+    
+
+    Training_ornot = raw_input("Training?:(y/n)")    
+    if Training_ornot == 'y': 
+        # eid = input("input the emotion ID you want to train:(0~39)")
+        print "Input required info:[Begin emotion ID][End emotion ID][TrainingDataFormat][TestingDataFormat]" 
+        print "e.g.:0 40 160 20p20n"
+        while True:
+            Pre_Training = raw_input("Input:")
+            if Pre_Training == 'ex':break
+            Pre_Training = Pre_Training.split()
+            if len(Pre_Training) == 4:
+                training(sys.argv[1],int(Pre_Training[0]),int(Pre_Training[1]),Pre_Training[2],Pre_Training[3])
+                break
+            else: print "your input format is wrong, try again, or type ex to out"
+    else: pass
+    
+
+    buildkernel_ornot = raw_input("Build a training kernel?:(y/n)")    
+    if buildkernel_ornot == 'y':
+        print "Input required info:[Begin emotion ID][End emotion ID]" 
+        print "e.g.:0 40"
+        Pre_buildkernel = raw_input("Input:")
+        Pre_buildkernel = Pre_buildkernel.split() 
+        if len(Pre_buildkernel) == 2:
+            #make sure that you've already use Build_random_Tr+Dev_idx.py to built '../exp/data/train_binary_idx.pkl' and '../exp/data/dev_binary_idx.pkl'
+            buildkernel('../exp/train/',sys.argv[1],int(Pre_buildkernel[0]),int(Pre_buildkernel[1]))
+        else: print "your input format is wrong, try next time"
+    else: pass

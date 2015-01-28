@@ -1,10 +1,10 @@
-import sys
+import sys, os
 sys.path.append("../")
 import numpy as np
 from feelit import utils
 import pickle
 from feelit.features import dump
-
+import scipy.io as sio
 
 def gen_idx(y):
     """
@@ -53,12 +53,12 @@ def subsample(X, y, idxs):
             _X.append( X[i] )
     return ( np.array(_X), np.array(_y) )
 
-def relabel(y, label): return [label if _y == label else "_"+label for _y in y ]
+def relabel(y, label): return [float(1) if _y == label else float(-1) for _y in y ]
 
 
-def save(G, path="random160_idx.pkl"): pickle.dump(G, open(path, "wb"), protocol=2)
+def save(G, path="random_idx.pkl"): pickle.dump(G, open(path, "wb"), protocol=2)
 
-def load(path="random160_idx.pkl"): return pickle.load(open(path))
+def load(path="random_idx.pkl"): return pickle.load(open(path))
 def usage():
     print 'Usage:'
     print 'python %s [feature_names]' % (__file__)
@@ -78,8 +78,8 @@ if __name__ == '__main__':
     # G = gen_idx(y)
 
     ## load existed
-    print 'loading random160_idx'
-    G = load(path="random160_idx.pkl")
+    print 'loading random_idx.pkl'
+    G = load(path="random_idx.pkl")
 
     
     for feature_name in feature_names:
@@ -88,7 +88,7 @@ if __name__ == '__main__':
 
         ## load text_TFIDF.Xy.test.npz
         ## load text_TFIDF.Xy.train.npz
-        npz_path = "../exp/data/"+feature_name+".Xy.train.npz"
+        npz_path = "../exp/data/from_mongo/"+feature_name+".Xy.train.npz"
 
         print ' > loading',npz_path
 
@@ -111,13 +111,16 @@ if __name__ == '__main__':
             print 'processing %d/%d' % ( i_label+1, len(G) )
             print ' > subsampling', label
 
-            idxs = set([i for i in G[label] ])
+            idxs = set([i for i,l in G[label] ])
             _X, _y = subsample(X, y, idxs)
 
             _y = relabel(_y, label)
 
-            path = "../exp/train/"+feature_name+"/160_Xy/"+feature_name+".Xy."+label+".train.npz"
-            print ' > dumping', path
-            dump(path, X=_X, y=_y)
+            path = "../exp/train/"+feature_name+"/800p800n_Xy/"+feature_name+".800p800n_Xy."+label+".train"
+            dirs = os.path.dirname(path+".npz")
+            if dirs and not os.path.exists( dirs ): os.makedirs( dirs )
+            
+            print ' > dumping', path+".npz"
+            dump(path+".npz", X=_X, y=_y)
 
-
+            # sio.savemat(path+'.mat', {'X':_X, 'y':_y})

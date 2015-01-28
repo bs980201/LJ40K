@@ -11,7 +11,7 @@ def help():
     print
     print "-----------------------------------------------------------------------------------"
     print "  e.g: python %s 32000 80 train" % (__file__)
-    print "  from 32000 training data randomly select 80*2 data each emotion for training"
+    print "  from 32000 training data randomly select 80*2(80pos., 80neg.) data each emotion for training"
     print "  e.g: output pkl file: {'accomplished':[3,56,34,78...],'sad':[466,536,423,...],.....}"
     print
     print "-----------------------------------------------------------------------------------"
@@ -68,15 +68,15 @@ if __name__ == '__main__':
         SelectPart2 = random_Nthislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity)
 
         Total_selecting_Data = [x+y for x, y in zip(SelectPart1, SelectPart2)]
-        Total_SETQ = str(Selected_EachEm_Data_quantity*2)
+        SETQ = str(Selected_EachEm_Data_quantity)
         random_idx = dict(zip(LJ40K,Total_selecting_Data))
-        pickle.dump(random_idx, open("random"+Total_SETQ+"Train_idx.pkl", "wb"), protocol=2)
+        pickle.dump(random_idx, open("random"+SETQ+"p"+SETQ+"ntrain_idx.pkl", "wb"), protocol=2)
     
     elif sys.argv[3] == 'test':
         Total_selecting_Data = random_Data(Data_quantity,Emotion_quantity,Selected_EachEm_Data_quantity)
-        Total_SETQ = str(Selected_EachEm_Data_quantity)
+        SETQ = str(Selected_EachEm_Data_quantity)
         random_idx = dict(zip(LJ40K,Total_selecting_Data))
-        pickle.dump(random_idx, open("random"+Total_SETQ+"Test_idx.pkl", "wb"), protocol=2)
+        pickle.dump(random_idx, open("random"+SETQ+"test_idx.pkl", "wb"), protocol=2)
     
     else:
         help()

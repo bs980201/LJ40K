@@ -35,8 +35,7 @@ if __name__ == '__main__':
         ## print matrix x
         print type(x), "\"%s\" = " % (matrix_name)
         print "%s" % (x)
-        print
-
+        print   
         ## print shape
         print "Its dimension  is" 
         print (x.shape)
