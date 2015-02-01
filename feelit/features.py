@@ -841,7 +841,7 @@ class Learning(object):
         n = utils.getArrayN(self.X)
 
         ## setup a kFolder
-        kf = KFold(n=n , n_folds=n_folds, shuffle=shuffle )
+        kf = KFold(n=n , n_folds=n_folds, shuffle=shuffle)
         logging.debug("setup a kFold with n=%d, n_folds=%d" % (n, n_folds))
         
         ## setup a Scaler
@@ -860,7 +860,7 @@ class Learning(object):
             with_mean = False
         
 
-        scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+        # scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
 
         logging.debug('training with %s classifier' % (classifier))
 
@@ -868,48 +868,59 @@ class Learning(object):
         ## determine whether using predict or predict_proba
         prob = False if 'prob' not in kwargs else kwargs["prob"]
 
+        ##by sven
+        Cs = [1.0,10,100,1000,10000]
+        for C in Cs:
+            addscore = 0
+            clf = None
+            scaler = None
 
-        for (i, (train_index, test_index)) in enumerate(kf):
-
-            logging.debug("train: %d , test: %d" % (len(train_index), len(test_index)))
-
-            logging.info('cross validation round %d' % (i+1))
-            X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
+            for (i, (train_index, test_index)) in enumerate(kf):
 
 
-            logging.debug("scaling")
+                logging.debug("train: %d , test: %d" % (len(train_index), len(test_index)))
 
-            X_train = scaler.fit_transform(X_train)
-            X_test = scaler.fit_transform(X_test)
+                logging.debug('cross validation round %d' % (i+1))
+                X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
 
-            if classifier == "SVM":
-                clf = svm.SVC(kernel=kernel, probability=prob)
-            elif classifier == "SGD":
-                if prob:
-                    clf = SGDClassifier(loss="log")
+
+                logging.debug("scaling")
+
+                scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+                X_train = scaler.fit_transform(X_train)
+                X_test = scaler.fit_transform(X_test)
+
+                if classifier == "SVM":
+                    clf = svm.SVC(C=C,kernel=kernel, probability=prob)
+                    # clf = svm.SVC(kernel=kernel, probability=prob)
+                elif classifier == "SGD":
+                    if prob:
+                        clf = SGDClassifier(loss="log")
+                    else:
+                        clf = SGDClassifier()
                 else:
-                    clf = SGDClassifier()
-            else:
-                logging.error("currently only support SVM and SGD classifiers")
-                return False
-            
+                    logging.error("currently only support SVM and SGD classifiers")
+                    return False
+                
 
-            logging.debug("training (#x: %d, #y: %d)" % (len(X_train), len(y_train)))
-            clf.fit(X_train, y_train)
+                logging.debug("training (#x: %d, #y: %d)" % (len(X_train), len(y_train)))
+                clf.fit(X_train, y_train)
 
-            
-            score = clf.score(X_test, y_test)
-            logging.debug('get score %.3f' % (score))
+                
+                score = clf.score(X_test, y_test)
+                logging.debug('get score %.3f' % (score))
+                # print score
+                addscore = addscore+score
 
-            
-            if prob:
-                logging.debug("predicting (#x: %d, #y: %d) with prob" % (len(X_test), len(y_test)))
-                result = clf.predict_proba(X_test)
-            else:
-                logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
-                result = clf.predict(X_test)
+                if prob:
+                    logging.debug("predicting (#x: %d, #y: %d) with prob" % (len(X_test), len(y_test)))
+                    result = clf.predict_proba(X_test)
+                else:
+                    logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
+                    result = clf.predict(X_test)
 
-            self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
+                self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
+            print 'C = ', C,' accuracy = ', addscore/10
 
     def save(self, root="results"):
         
