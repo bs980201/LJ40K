@@ -869,9 +869,11 @@ class Learning(object):
         prob = False if 'prob' not in kwargs else kwargs["prob"]
 
         ##by sven
-        Cs = [1.0,10,100,1000,10000]
+        Cs = [0.1,0.3,1,3,10,100,1000,10000]
+        topscore = 0
+        topC = 0
         for C in Cs:
-            addscore = 0
+            scoreadding = 0
             clf = None
             scaler = None
 
@@ -884,11 +886,11 @@ class Learning(object):
                 X_train, X_test, y_train, y_test = self.X[train_index], self.X[test_index], self.y[train_index], self.y[test_index]
 
 
-                logging.debug("scaling")
+                # logging.debug("scaling")
 
-                scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
-                X_train = scaler.fit_transform(X_train)
-                X_test = scaler.fit_transform(X_test)
+                # scaler = StandardScaler(with_mean=with_mean, with_std=with_std).fit(X_train)
+                # X_train = scaler.transform(X_train)
+                # X_test = scaler.transform(X_test)
 
                 if classifier == "SVM":
                     clf = svm.SVC(C=C,kernel=kernel, probability=prob)
@@ -910,18 +912,23 @@ class Learning(object):
                 score = clf.score(X_test, y_test)
                 logging.debug('get score %.3f' % (score))
                 # print score
-                addscore = addscore+score
+                scoreadding = scoreadding+score
 
-                if prob:
-                    logging.debug("predicting (#x: %d, #y: %d) with prob" % (len(X_test), len(y_test)))
-                    result = clf.predict_proba(X_test)
-                else:
-                    logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
-                    result = clf.predict(X_test)
+                # if prob:
+                #     logging.debug("predicting (#x: %d, #y: %d) with prob" % (len(X_test), len(y_test)))
+                #     result = clf.predict_proba(X_test)
+                # else:
+                #     logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
+                #     result = clf.predict(X_test)
 
-                self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
-            print 'C = ', C,' accuracy = ', addscore/10
-
+                # self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
+            print 'C = ', C,' accuracy = ', scoreadding/10
+            if scoreadding/10 > topscore:
+                topscore = scoreadding/10
+                topC = C
+        print 'TopC = ', topC,' accuracy = ', topscore
+        return topC
+        
     def save(self, root="results"):
         
         # self.clf.classes_ ## corresponding label of the column in predict_results

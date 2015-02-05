@@ -132,15 +132,22 @@ def save(G, path="default"): pickle.dump(G, open(path, "wb"), protocol=2)
 
 def load(path="default"): return pickle.load(open(path))
 
-def evals(y_te, y_predict, emotion):
-
+def evals(y_te, y_predict, emotion,te_format):
+    
     # ## for y is 1, -1 format
-    y_te_ = [1 if a == 1 else 0 for a in y_te]
-    y_predict_ = [0 if a == -1 else 1 for a in y_predict]
+    # y_te_ = [1 if a == 1 else 0 for a in y_te]
+    # y_predict_ = [0 if a == -1 else 1 for a in y_predict]
 
     # for y is sad, _sad format
     # y_te_ = [1 if a == emotion else 0 for a in y_te]
     # y_predict_ = [0 if a.startswith('_') else 1 for a in y_predict]
+    
+    if te_format == 'all':
+        y_predict_ = [0 if a == -1 else 1 for a in y_predict]
+        y_te_ = [1 if a == emotion else 0 for a in y_te]
+    else:
+        y_te_ = [1 if a == 1 else 0 for a in y_te]
+        y_predict_ = [0 if a == -1 else 1 for a in y_predict]
 
     Y = zip(y_te_, y_predict_)
 
@@ -148,71 +155,66 @@ def evals(y_te, y_predict, emotion):
     TN = len([ 1 for a,b in Y if a == 0 and b == 0 ])
     TP = len([ 1 for a,b in Y if a == 1 and b == 1 ])
     FN = len([ 1 for a,b in Y if a == 1 and b == 0 ])
-    # accu = (TP + TN/39) / float(FP/39 + TN/39 + TP + FN)
-
-    # for "not 8000 testing data"
-    accu = (TP + TN) / float(FP + TN + TP + FN)
     
 
+    if te_format == 'all':    
+        accu = (TP + TN/39) / float(FP/39 + TN/39 + TP + FN)
+    else:
+        # for "not 8000 testing data"
+        accu = (TP + TN) / float(FP + TN + TP + FN)
+    
     return accu
 
 def training(feature,begin,end,tr_format,te_format):
     ## init
     Pofemotion = emotions[begin:end]
-    
-    # test_data = np.load("../exp/test/%s/%s.Xy.test.npz" % (feature, feature))
-    # X_te, y_te = test_data['X'], test_data['y']
-    # if utils.isSparse(X_te):
-        # print 'The testing data is a sparse matrix'
-        # print ' > X_te to Dense'
-    #     X_te = utils.toDense(X_te)    
-    
+    nfold = raw_input("nfold?:(y/n)")
+
+    if te_format == 'all':
+        ## y = u'_sad', u'sad'
+        print 'loading testing data from'+"../exp/test/%s/%s.Xy.test.npz" % (feature, feature)
+        test_data = np.load("../exp/test/%s/%s.Xy.test.npz" % (feature, feature))
+    else:pass
+
     for emotion in Pofemotion:
+
         l = Learning(verbose=False)
 
         ## ================ training ================ ##
-
-        ## load train
-        # print 'loading training data from'+"../exp/train/%s/%s_Xy/%s.%s_Xy.%s.train.npz" % (feature, tr_format, feature, tr_format, emotion)
+        topC = 1.0
+        # load train
+        print 'loading training data from'+"../exp/train/%s/%s_Xy/%s.%s_Xy.%s.train.npz" % (feature, tr_format, feature, tr_format, emotion)
+        l.load(path="../exp/train/%s/%s_Xy/%s.%s_Xy.%s.train.npz" % (feature, tr_format, feature, tr_format, emotion))     
         
-        # ##for text_tfidf
-        # l.load(path="../exp/train/%s/Xy/%s.Xy.%s.train.npz" % (feature, feature, emotion))
-        
-        l.load(path="../exp/train/%s/%s_Xy/%s.%s_Xy.%s.train.npz" % (feature, tr_format, feature, tr_format, emotion))
+        if nfold == 'y':
+            print '>> training n_folds',emotion
+            topC = l.kFold(n_folds=10)
+        else: print '>> NOT to training n_folds',emotion
+        # train
+        print '>> training, using topC',emotion
+        l.train(classifier="SVM", kernel="rbf", C=topC, prob=False)
 
-        # ## train
-        # l.train(classifier="SVM", kernel="rbf", C=1000.0, prob=False)
+        # # ## ================= testing ================= ##
+        ## load test data
+        if te_format != 'all':
+            print 'loading testing data from'+"../exp/test/%s/%s_Xy/%s.%s_Xy.%s.test.npz" % (feature, te_format, feature, te_format, emotion)        
+            test_data = np.load("../exp/test/%s/%s_Xy/%s.%s_Xy.%s.test.npz" % (feature, te_format, feature, te_format, emotion))
+        else:pass
 
-        # ## ================= testing ================= ##
+        X_te, y_te = test_data['X'], test_data['y']
+        if utils.isSparse(X_te):
+            print 'The testing data is a sparse matrix'
+            print ' > X_te to Dense'
+            X_te = utils.toDense(X_te)
 
-        # ## load test data
-        # # print 'loading testing data from'+"../exp/test/%s/%s_Xy/%s.%s_Xy.%s.test.npz" % (feature, te_format, feature, te_format, emotion)
-        # # test_data = np.load("../exp/test/%s/%s.Xy.test.npz" % (feature, feature))
-        # test_data = np.load("../exp/test/%s/%s_Xy/%s.%s_Xy.%s.test.npz" % (feature, te_format, feature, te_format, emotion))
-        # # y_te
-        # # array(['accomplished', 'accomplished', 'accomplished', ..., 'tired',
-        # #        'tired', 'tired'],
-        # #       dtype='|S13')
-        # X_te, y_te = test_data['X'], test_data['y']
-        # if utils.isSparse(X_te):
-        #     print 'The testing data is a sparse matrix'
-        #     print ' > X_te to Dense'
-        #     X_te = utils.toDense(X_te)
-        # # # predict
-        # # y_predict
-        # # array([u'_sad', u'_sad', u'sad', ..., u'_sad', u'_sad', u'_sad'],
-        # #       dtype='<U4')
-        # y_predict = l.clf.predict(X_te)
+        y_predict = l.clf.predict(X_te)
 
         # #print 'y_predict = ', y_predict
 
-        # ## eval
-        # accuracy = evals(y_te, y_predict, emotion)
-
-        # print emotion, '\t', accuracy
-        
-        print '>> training',emotion
-        l.kFold(classifier="SVM", kernel="rbf")
+        ## eval
+        accuracy = evals(y_te, y_predict, emotion,te_format)
+        # accuracy = l.clf.score(X_te, y_te)
+        print emotion, '\t', accuracy
 
 
 def buildkernel(root,feature,begin,end):
