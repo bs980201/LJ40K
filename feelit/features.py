@@ -914,14 +914,14 @@ class Learning(object):
                 # print score
                 scoreadding = scoreadding+score
 
-                # if prob:
-                #     logging.debug("predicting (#x: %d, #y: %d) with prob" % (len(X_test), len(y_test)))
-                #     result = clf.predict_proba(X_test)
-                # else:
-                #     logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
-                #     result = clf.predict(X_test)
+                if prob:
+                    logging.debug("predicting (#x: %d, #y: %d) with prob" % (len(X_test), len(y_test)))
+                    result = clf.predict_proba(X_test)
+                else:
+                    logging.debug("predicting (#x: %d, #y: %d)" % (len(X_test), len(y_test)))
+                    result = clf.predict(X_test)
 
-                # self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
+                self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
             print 'C = ', C,' accuracy = ', scoreadding/10
             if scoreadding/10 > topscore:
                 topscore = scoreadding/10

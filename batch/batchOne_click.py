@@ -209,11 +209,8 @@ def training(feature,begin,end,tr_format,te_format):
 
         y_predict = l.clf.predict(X_te)
 
-        # #print 'y_predict = ', y_predict
-
         ## eval
         accuracy = evals(y_te, y_predict, emotion,te_format)
-        # accuracy = l.clf.score(X_te, y_te)
         print emotion, '\t', accuracy
 
 
@@ -325,6 +322,7 @@ if __name__ == '__main__':
         # eid = input("input the emotion ID you want to train:(0~39)")
         print "Input required info:[Begin emotion ID][End emotion ID][TrainingDataFormat][TestingDataFormat]" 
         print "e.g.:0 40 160 20p20n"
+        print "e.g.:0 40 800p800n all"
         while True:
             Pre_Training = raw_input("Input:")
             if Pre_Training == 'ex':break
