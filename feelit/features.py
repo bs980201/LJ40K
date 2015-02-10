@@ -869,7 +869,7 @@ class Learning(object):
         prob = False if 'prob' not in kwargs else kwargs["prob"]
 
         ##by sven
-        Cs = [0.1,0.3,1,3,10,100,1000,10000]
+        Cs = [0.1,0.3,1,3,10]
         topscore = 0
         topC = 0
         for C in Cs:

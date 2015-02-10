@@ -99,7 +99,7 @@ def Npzto40Emo(feature_name, datafunction, RandomSetting_Path, mat=0, feature_ty
         print 'processing %d/%d' % ( i_label+1, len(G) )
         print ' > subsampling', label
 
-        idxs = set([i for i in G[label] ])
+        idxs = set([i for i,j in G[label] ])
         _X, _y = subsample(X, y, idxs)
 
         _y = relabel(_y, label)
