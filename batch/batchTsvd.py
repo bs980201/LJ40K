@@ -19,10 +19,12 @@ def TSVD(i,n_components):
     print(">>>thread %d start! with %d components" % (i,n_components))
 
     print(">>>thread %d, %d components, loading training and testing files" % (i,n_components))
-    tr_data = np.load('../exp/data/from_mongo/TFIDF.Xy.train.npz')
+    tr_data = np.load('../exp/data/from_mongo/pattern_mincount2.Xy.train.npz')
     trX = tr_data['X']
-    te_data = np.load('../exp/data/from_mongo/TFIDF.Xy.test.npz')
+    tr_y = tr_data['y']
+    te_data = np.load('../exp/data/from_mongo/pattern_mincount2.Xy.test.npz')
     teX = te_data['X']
+    te_y = te_data['y']
 
     trX = sparseTodense(trX)
     teX = sparseTodense(teX)
@@ -39,14 +41,14 @@ def TSVD(i,n_components):
     print 'thread %d, %d components, svd.explained_variance_ratio_ : ' % (i,n_components)
     print svd.explained_variance_ratio_[0:5]
 
-    path = '../exp/data/from_mongo/TFIDF_TSVD'+str(n_components)
+    path = '../exp/data/from_mongo/pattern_mincount2_TSVD'+str(n_components)
 
-    np.savez_compressed(path+'.Xy.train.npz', X=trX)
-    np.savez_compressed(path+'.Xy.test.npz', X=teX)
+    np.savez_compressed(path+'.Xy.train.npz', X=trX, y=tr_y)
+    np.savez_compressed(path+'.Xy.test.npz', X=teX, y=te_y)
     print '>>>thread %d, %d components, FINISH' % (i,n_components)
 
 def main():
-    n_components = [300, 500, 1000, 1500, 3000, 5000]
+    n_components = [150, 300, 500]
     for i,j in enumerate(n_components):
         t = Thread(target=TSVD, args=(i,j))
         time.sleep(10)

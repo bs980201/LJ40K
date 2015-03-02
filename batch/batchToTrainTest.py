@@ -83,7 +83,7 @@ if __name__ == '__main__':
         train_path = "../exp/data/from_mongo/"+feature_name+".Xy"+".train"+".npz"
         test_path = "../exp/data/from_mongo/"+feature_name+".Xy"+".test"+".npz"
 
-        ## make sparse matrix
+        # make sparse matrix
         X_train = csr_matrix(X_train)
         X_test = csr_matrix(X_test)
 

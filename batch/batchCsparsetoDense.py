@@ -31,7 +31,7 @@ if __name__ == '__main__':
         y = data['y']
         print 'get y', y.shape
         
-        test_path = "../exp/data/from_mongo/"+feature_name+".sp.Xy.test"
+        test_path = "../exp/data/from_mongo/"+feature_name+".full.Xy.test"
         
         sio.savemat(test_path+'.mat', {'X':X, 'y':y})
 

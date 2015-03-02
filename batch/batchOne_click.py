@@ -10,6 +10,7 @@ from feelit.features import Learning
 from feelit.features import LoadFile
 from feelit import utils
 from feelit.kernel import RBF
+from sklearn.metrics import roc_curve, auc
 
 emotions = utils.LJ40K
 
@@ -66,9 +67,6 @@ def Npzto40Emo(feature_name, datafunction, RandomSetting_Path, mat=0, feature_ty
     G = load(path=RandomSetting_Path)
     DataFormat = RandomSetting_Path.split('/')[-1].replace('random','').replace("_idx.pkl","").replace(datafunction,"")
 
-    # #for testing
-    # print 'loading random200p200nTest_idx.pkl'
-    # G = load(path="random200p200nTest_idx.pkl")
  
     print '>>> processing', feature_name
 
@@ -166,7 +164,7 @@ def evals(y_te, y_predict, emotion,te_format):
     return accu
 
 def training(feature,begin,end,tr_format,te_format):
-    ## init
+
     Pofemotion = emotions[begin:end]
     nfold = raw_input("nfold?:(y/n)")
 
@@ -176,7 +174,10 @@ def training(feature,begin,end,tr_format,te_format):
         test_data = np.load("../exp/test/%s/%s.Xy.test.npz" % (feature, feature))
     else:pass
 
+    accuracies = []
+    aucs = []
     for emotion in Pofemotion:
+
 
         l = Learning(verbose=False)
 
@@ -186,13 +187,14 @@ def training(feature,begin,end,tr_format,te_format):
         print 'loading training data from'+"../exp/train/%s/%s_Xy/%s.%s_Xy.%s.train.npz" % (feature, tr_format, feature, tr_format, emotion)
         l.load(path="../exp/train/%s/%s_Xy/%s.%s_Xy.%s.train.npz" % (feature, tr_format, feature, tr_format, emotion))     
         
+
         if nfold == 'y':
             print '>> training n_folds',emotion
             topC = l.kFold(n_folds=10)
         else: print '>> NOT to training n_folds',emotion
         # train
         print '>> training, using topC',emotion
-        l.train(classifier="SVM", kernel="rbf", C=topC, prob=False)
+        l.train(classifier="SVM", kernel="rbf", C=topC, prob=True, random_state=np.random.RandomState(0))
 
         # # ## ================= testing ================= ##
         ## load test data
@@ -209,10 +211,29 @@ def training(feature,begin,end,tr_format,te_format):
 
         y_predict = l.clf.predict(X_te)
 
+
+        # compute AUC
+        probas_ = l.clf.predict_proba(X_te)
+        fpr, tpr, thresholds = roc_curve([1 if a == emotion else 0 for a in y_te], probas_[:, 1])
+        roc_auc = auc(fpr, tpr)
+
         ## eval
         accuracy = evals(y_te, y_predict, emotion,te_format)
-        print emotion, '\t', accuracy
+        print emotion, '\t', accuracy, '\t', roc_auc
+        accuracies.append(accuracy)
+        aucs.append(roc_auc)
 
+        # construct and write csv
+        # TODO: parameterize
+        result_csv = []
+        result_csv.append(Pofemotion)
+        result_csv.append(accuracies)
+        result_csv.append(aucs)
+        result_csv=zip(*result_csv)
+        import csv
+        f = open("../exp/res/"+feature+"_res.csv", "w")
+        csv.writer(f).writerows(result_csv)
+        f.close()
 
 def buildkernel(root,feature,begin,end):
 
@@ -304,7 +325,7 @@ if __name__ == '__main__':
     if Into40emtion_ornot == 'y':
         print "Input required info:[make .mat or not?(1/0)][data_is(text/image)][train/test][RandomSetting_Path]"
         print "e.g.:1 text test random400test_idx.pkl"
-        print "e.g.:1 image train random160_idx.pkl"
+        print "e.g.:1 image train random800p800ntrain_idx.pkl"
         while True:
             Pre_Into40emtion = raw_input("Input:")
             if Pre_Into40emtion == 'ex':break

@@ -869,7 +869,7 @@ class Learning(object):
         prob = False if 'prob' not in kwargs else kwargs["prob"]
 
         ##by sven
-        Cs = [0.1,0.3,1,3,10]
+        Cs = [10,30,100,300,1000,3000,10000,30000,100000]
         topscore = 0
         topC = 0
         for C in Cs:
@@ -922,9 +922,9 @@ class Learning(object):
                     result = clf.predict(X_test)
 
                 self.kfold_results.append( (i+1, y_test, result, score, clf.classes_) )
-            print 'C = ', C,' accuracy = ', scoreadding/10
-            if scoreadding/10 > topscore:
-                topscore = scoreadding/10
+            print 'C = ', C,' accuracy = ', scoreadding/10.
+            if scoreadding/10. > topscore:
+                topscore = scoreadding/10.
                 topC = C
         print 'TopC = ', topC,' accuracy = ', topscore
         return topC

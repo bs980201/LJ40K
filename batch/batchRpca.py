@@ -7,7 +7,6 @@ import numpy as np
 import time
 from threading import Thread
 
-
 def sparseTodense(X):
     if utils.isSparse(X):
         print 'The data is a sparse matrix'
@@ -21,8 +20,10 @@ def RPCA(i,n_components):
     print(">>>thread %d, %d components, loading training and testing files" % (i,n_components))
     tr_data = np.load('../exp/data/from_mongo/TFIDF.Xy.train.npz')
     trX = tr_data['X']
+    tr_y = tr_data['y']
     te_data = np.load('../exp/data/from_mongo/TFIDF.Xy.test.npz')
     teX = te_data['X']
+    te_y = te_data['y']
 
     trX = sparseTodense(trX)
     teX = sparseTodense(teX)
@@ -41,8 +42,8 @@ def RPCA(i,n_components):
 
     path = '../exp/data/from_mongo/TFIDF_RPCA'+str(n_components)
 
-    np.savez_compressed(path+'.Xy.train.npz', X=trX)
-    np.savez_compressed(path+'.Xy.test.npz', X=teX)
+    np.savez_compressed(path+'.Xy.train.npz', X=trX, y=tr_y)
+    np.savez_compressed(path+'.Xy.test.npz', X=teX, y=te_y)
     print '>>>thread %d, %d components, FINISH' % (i,n_components)
 
 def main():
