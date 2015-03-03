@@ -1,9 +1,9 @@
 # -*- coding: utf-8 -*-
 import sys, os
+sys.path.append("../")
 import random
 import pickle
-
-LJ40K = ['accomplished', 'aggravated', 'amused', 'annoyed', 'anxious', 'awake', 'blah', 'blank', 'bored', 'bouncy', 'busy', 'calm', 'cheerful', 'chipper', 'cold', 'confused', 'contemplative', 'content', 'crappy', 'crazy', 'creative', 'crushed', 'depressed', 'drained', 'ecstatic', 'excited', 'exhausted', 'frustrated', 'good', 'happy', 'hopeful', 'hungry', 'lonely', 'loved', 'okay', 'pissed off', 'sad', 'sick', 'sleepy', 'tired']
+from feelit.utils import LJ40K
 
 def help():
     print
@@ -20,21 +20,24 @@ def help():
     print
     exit(-1)
 
-def random_thislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity):  
+def random_positive_label_data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity):
     selected_Data = []
     #build[0,1,2,....31999]
     feature_indexs = range(Data_quantity)
     #build[0,800,1600,....31200] and make feature_indexs separated 
     for i in range(0,Data_quantity,EachEm_Data_quantity):
+        #build[0,1,2,3,....,799]
         Part_of_feature_index = feature_indexs[i:i+EachEm_Data_quantity]
         random.shuffle(Part_of_feature_index)
         selected_Data.append(Part_of_feature_index[:Selected_EachEm_Data_quantity])
     return selected_Data
 
-def random_Nthislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity):    
+def random_negative_label_data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity):    
     selected_Data = []
+    #build[0,800,1600,....31200] and make feature_indexs separated 
     for i in range(0,Data_quantity,EachEm_Data_quantity):
         feature_indexs = range(Data_quantity)
+        # delete index of positive label
         del feature_indexs[i:i+EachEm_Data_quantity]
         random.shuffle(feature_indexs)
         feature_indexs = feature_indexs[:Selected_EachEm_Data_quantity]
@@ -42,7 +45,7 @@ def random_Nthislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Da
     # print selected_Data
     return selected_Data
 
-def random_Data(Data_quantity,Emotion_quantity,Selected_EachEm_Data_quantity):     
+def random_data(Data_quantity,Emotion_quantity,Selected_EachEm_Data_quantity):     
     selected_Data = []
     #build[0,200,400,....7800] and make feature_indexs separated      
     for i in range(Emotion_quantity):
@@ -50,13 +53,12 @@ def random_Data(Data_quantity,Emotion_quantity,Selected_EachEm_Data_quantity):
         feature_indexs = range(Data_quantity)
         random.shuffle(feature_indexs)
         selected_Data.append(feature_indexs[:Selected_EachEm_Data_quantity])
-    # print random_thislabel_Data
     return selected_Data
 
 if __name__ == '__main__':
 
     if len(sys.argv) != 4: help()
-    Emotion_quantity = 40
+    Emotion_quantity = len(LJ40K)
     Data_quantity = int(sys.argv[1])
     #EachEm_Data_quantity = 32000/40 = 800
     EachEm_Data_quantity = Data_quantity/Emotion_quantity
@@ -64,16 +66,16 @@ if __name__ == '__main__':
     Selected_EachEm_Data_quantity = int(sys.argv[2])
     
     if sys.argv[3] == 'train':
-        SelectPart1 = random_thislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity)
-        SelectPart2 = random_Nthislabel_Data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity)
+        SelectPartP = random_positive_label_data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity)
+        SelectPartN = random_negative_label_data(Data_quantity,EachEm_Data_quantity,Selected_EachEm_Data_quantity)
 
-        Total_selecting_Data = [x+y for x, y in zip(SelectPart1, SelectPart2)]
+        Total_selecting_Data = [x+y for x, y in zip(SelectPartP, SelectPartN)]
         SETQ = str(Selected_EachEm_Data_quantity)
         random_idx = dict(zip(LJ40K,Total_selecting_Data))
         pickle.dump(random_idx, open("random"+SETQ+"p"+SETQ+"ntrain_idx.pkl", "wb"), protocol=2)
     
     elif sys.argv[3] == 'test':
-        Total_selecting_Data = random_Data(Data_quantity,Emotion_quantity,Selected_EachEm_Data_quantity)
+        Total_selecting_Data = random_data(Data_quantity,Emotion_quantity,Selected_EachEm_Data_quantity)
         SETQ = str(Selected_EachEm_Data_quantity)
         random_idx = dict(zip(LJ40K,Total_selecting_Data))
         pickle.dump(random_idx, open("random"+SETQ+"test_idx.pkl", "wb"), protocol=2)
