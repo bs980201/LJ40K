@@ -4,3 +4,4 @@ dev/*
 *models*
 tmp
 data
+raw/*
