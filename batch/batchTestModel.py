@@ -35,8 +35,8 @@ if __name__ == '__main__':
         loglevel = logging.INFO
     else:
         loglevel = logging.ERROR
-    logging.basicConfig(format='[%(levelname)s] %(message)s', level=loglevel) 
-
+    logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel) 
+    logger = logging.getLogger(__name__)
 
     # pre-checking
     if not os.path.exists(args.model_file_name):
@@ -47,14 +47,14 @@ if __name__ == '__main__':
 
     #load
     learner = Learning(loglevel=loglevel) 
+    if args.scaler_file:
+        learner.load_scaler(args.scaler_file)
     learner.load_model(args.model_file_name)
 
     # prepare test data
     paths = [f['test_file'] for f in features]
     preprocessor = DataPreprocessor(loglevel=loglevel)
-    if args.scaler_file:
-        preprocessor.load_scalers(args.scaler_file)
-    preprocessor.loads([f['feature'] for f in features], paths, False)
+    preprocessor.loads([f['feature'] for f in features], paths)
     X_test, y_test, feature_name = preprocessor.fuse()    
     emotion_name = emotions[args.emotion_id]
     yb_test = preprocessor.get_binary_y_by_emotion(y_test, emotion_name)

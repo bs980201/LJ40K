@@ -123,8 +123,8 @@ if __name__ == '__main__':
         paths = get_paths_by_emotion(features, emotion_name)
 
         ## prepare data
-        preprocessor = DataPreprocessor(loglevel=loglevel, do_scaling=(not args.no_scaling), with_mean=True, with_std=True)
-        preprocessor.loads([f['feature'] for f in features], paths, True)
+        preprocessor = DataPreprocessor(loglevel=loglevel)
+        preprocessor.loads([f['feature'] for f in features], paths)
         X_train, y_train, feature_name = preprocessor.fuse()
 
         ## set default gamma for SVM           
@@ -142,9 +142,7 @@ if __name__ == '__main__':
             scores = {}
             for svmc in args.c:
                 for rbf_gamma in args.gamma:
-                    # ToDo: remove scaling
-                    #   we do not perform feature scaling in the learner but in the preprocessor
-                    score = learner.kfold(kfolder, classifier='SVM', kernel='rbf', prob=False, C=svmc, scaling=False ,gamma=rbf_gamma)
+                    score = learner.kfold(kfolder, classifier='SVM', kernel='rbf', prob=False, C=svmc, scaling=(not args.no_scaling) ,gamma=rbf_gamma)
                     scores.update({(svmc, rbf_gamma): score})
 
             if args.temp_output_dir:
@@ -164,14 +162,12 @@ if __name__ == '__main__':
 
         ## ---------------------------------------------------------------------------
         ## train all data
-        # ToDo: remove scaling
-        #   we do not perform feature scaling in the learner but in the preprocessor
-        learner.train(classifier='SVM', kernel='rbf', prob=True, C=best_C, gamma=best_gamma, scaling=False, random_state=np.random.RandomState(0))
+        learner.train(classifier='SVM', kernel='rbf', prob=True, C=best_C, gamma=best_gamma, scaling=(not args.no_scaling), random_state=np.random.RandomState(0))
 
         ## prepare testing data
         paths = [f['test_file'] for f in features]
-        preprocessor.clear(keep_scaler=True)
-        preprocessor.loads([f['feature'] for f in features], paths, False)
+        preprocessor.clear()
+        preprocessor.loads([f['feature'] for f in features], paths)
         X_test, y_test, feature_name = preprocessor.fuse()
         
         yb_test = preprocessor.get_binary_y_by_emotion(y_test, emotion_name)
@@ -184,7 +180,7 @@ if __name__ == '__main__':
             learner.dump_model(fpath);
             if not args.no_scaling:
                 fpath = os.path.join(args.temp_output_dir, "scaler_%s.pkl" % (emotion_name));
-                preprocessor.dump_scalers(fpath);
+                learner.dump_scaler(fpath);
 
     if args.temp_output_dir:
         fpath = os.path.join(args.temp_output_dir, 'best_param.csv')

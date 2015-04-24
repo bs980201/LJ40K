@@ -107,8 +107,8 @@ class PatternFetcher(object):
 
         ## process args
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)     
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
 
         ## mongodb settings
         mongo_addr = 'doraemon.iis.sinica.edu.tw' if 'mongo_addr' not in kwargs else kwargs['mongo_addr']
@@ -262,8 +262,8 @@ class FileSplitter(object):
 
     def __init__(self, **kwargs):    
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)   
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
 
     def load(self, file_path):
         """
@@ -385,11 +385,11 @@ class LoadFile(object):
         """
         Parameters:
             verbose: True/False
-        """        
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)  
-        
+        """                
+        loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
+
         self.Xs = {}
         self.ys = {}
         self.X = None
@@ -502,9 +502,9 @@ class FetchMongo(object):
         Parameters:
             verbose: True/False
         """
-        loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)     
+        loglevel = logging.DEBUG if 'verbose' in kwargs and kwargs['verbose'] == True else logging.INFO
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
 
         self._db = None
         self._fetched = set()
@@ -711,8 +711,8 @@ class DimensionReduction(object):
     def __init__(self, algorithm='truncatedsvd', **kwargs):
 
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__) 
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
 
         self.algorithm = None
         self.n_components = None
@@ -771,17 +771,13 @@ class DataPreprocessor(object):
     def __init__(self, **kwargs):
         """
         options:
-            loglevel: log level
+            logger: logging instance
         """
+        self.clear()
+
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__) 
-
-        self.clear(keep_scaler=False)
-
-        self.with_mean = True if 'with_mean' not in kwargs else kwargs['with_mean']
-        self.with_std = True if 'with_std' not in kwargs else kwargs['with_std']
-        self.do_scaling = True if 'do_scaling' not in kwargs else kwargs['do_scaling']
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)
 
     '''
     def full_matrix(self, X):
@@ -821,7 +817,7 @@ class DataPreprocessor(object):
                             X[i][j] = NONE
         return X
     '''
-    def loads(self, features, paths, do_fit=False):
+    def loads(self, features, paths):
         """
         Input:
             paths       : list of files to be concatenated
@@ -833,22 +829,13 @@ class DataPreprocessor(object):
 
             #X =  self.replace_nan( self.full_matrix(data['X']) )
             X = data['X']
-
-            if self.do_scaling and do_fit:
-                self.logger.debug("do fit and transform for %s, with_mean=%d, with_std=%d" % (features[i], self.with_mean, self.with_std))
-                self.scalers[features[i]] = StandardScaler(with_mean=self.with_mean, with_std=self.with_std)
-                X = self.scalers[features[i]].fit_transform(X)
-            elif self.do_scaling and not do_fit:
-                self.logger.debug("do transform for %s, with_mean=%d, with_std=%d" % (features[i], self.with_mean, self.with_std))
-                X = self.scalers[features[i]].transform(X)
-
             self.Xs[features[i]] = X
             self.ys[features[i]] = data['y'];
-            
+
             self.logger.info('feature "%s", %dx%d' % (features[i], X.shape[0], X.shape[1]))
 
             self.feature_name.append(features[i])
-        
+
     def fuse(self):
         """
         Output:
@@ -862,9 +849,7 @@ class DataPreprocessor(object):
             from scipy.sparse import hstack
             candidate = tuple([arr.all() for arr in self.Xs.values()])
             X = hstack(candidate)
-
-        assert X.size != 0
-
+              
         y = self.ys[ self.ys.keys()[0] ]
 
         # check all ys are same  
@@ -876,12 +861,10 @@ class DataPreprocessor(object):
 
         return X, y, feature_name
 
-    def clear(self, keep_scaler):
+    def clear(self):
         self.Xs = {}
         self.ys = {}
         self.feature_name = []
-        if not keep_scaler:
-            self.scalers = {}
 
     def get_binary_y_by_emotion(self, y, emotion):
         '''
@@ -889,19 +872,6 @@ class DataPreprocessor(object):
         '''       
         yb = np.array([1 if val == emotion else -1 for val in y])
         return yb
-
-    def dump_scalers(self, file_name):
-        try:
-            pickle.dump(self.scalers, open(file_name, "w"))
-        except ValueError:
-            self.logger.error("failed to dump %s" % (file_name))
-
-    def load_scalers(self, file_name):
-        try:
-            self.scalers = pickle.load( open(file_name, "r"))
-            self.do_scaling = True
-        except ValueError:
-            self.logger.error("failed to load %s" % (file_name))
 
 class Learning(object):
     """
@@ -915,26 +885,27 @@ class Learning(object):
         >>  for gamma in gammas:
         >>      score = learner.kFold(kfolder, classifier='SVM', 
         >>                          kernel='rbf', prob=False, 
-        >>                          C=c, gamma=gamma)
+        >>                          C=c, scaling=True, gamma=gamma)
         >>      scores.update({(c, gamma): score})
         >>
         >> best_C, best_gamma = max(scores.iteritems(), key=operator.itemgetter(1))[0]
         >> learner.train(classifier='SVM', kernel='rbf', prob=True, C=best_C, gamma=best_gamma, 
-        >>              random_state=np.random.RandomState(0))
+        >>              scaling=True, random_state=np.random.RandomState(0))
         >> results = learner.predict(X_test, yb_test, weighted_score=True, X_predict_prob=True, auc=True)
     """
 
     def __init__(self, X=None, y=None, **kwargs):
 
         loglevel = logging.ERROR if 'loglevel' not in kwargs else kwargs['loglevel']
-        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)  
-        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__)     
+        logging.basicConfig(format='[%(levelname)s][%(name)s] %(message)s', level=loglevel)
+        self.logger = logging.getLogger(__name__+'.'+self.__class__.__name__) 
 
         self.X = X
         self.y = y
         self.kfold_results = []
         self.Xs = {}
         self.ys = {}
+        self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
 
     def set(self, X, y, feature_name):
         self.X = X
@@ -953,6 +924,7 @@ class Learning(object):
             classifier: 'SVM', 'SGD', 'GaussianNB'
             with_mean: True/False
             with_std: True/False
+            scaling: True/False
             prob: True/False. Esimate probability during training
             random_state: seed, RandomState instance or None; for probability estimation
             kernel: 'rbf', ...
@@ -980,6 +952,13 @@ class Learning(object):
         # Douglas: this doesn't make sense
         #if utils.isSparse(self.X):
         #    with_mean = False
+
+        self.scaling = False if 'scaling' not in kwargs else kwargs['scaling']
+        if self.scaling:
+            self.scaler = StandardScaler(with_mean=with_mean, with_std=with_std)
+            ## apply scaling on X
+            self.logger.debug("applying a standard scaling with_mean=%d, with_std=%d" % (with_mean, with_std))
+            X_train = self.scaler.fit_transform(X_train)
 
         ## determine whether using predict or predict_proba
         self.prob = False if 'prob' not in kwargs else kwargs["prob"]
@@ -1022,9 +1001,26 @@ class Learning(object):
         except ValueError:
             self.logger.error("failed to dump %s" % (file_name))
 
+    def dump_scaler(self, file_name):
+        try:
+            if self.scaling:
+                pickle.dump(self.scaler, open(file_name, "w"))
+            else:
+                self.logger.warning("scaler doesn't exist")
+        except ValueError:
+            self.logger.error("failed to dump %s" % (file_name))
+
     def load_model(self, file_name):
         try:
             self.clf = pickle.load( open(file_name, "r"))
+        except ValueError:
+            self.logger.error("failed to load %s" % (file_name))
+
+    def load_scaler(self, file_name):
+        try:
+            self.scaler = pickle.load( open(file_name, "r"))
+            if self.scaler:
+                self.scaling = True
         except ValueError:
             self.logger.error("failed to load %s" % (file_name))
 
@@ -1032,6 +1028,9 @@ class Learning(object):
         '''
         return dictionary of results
         '''
+        
+        if self.scaling:
+            X_test = self.scaler.transform(X_test)
 
         self.logger.info('y_test = %s', str(y_test.shape))
         y_predict = self.clf.predict(X_test)
